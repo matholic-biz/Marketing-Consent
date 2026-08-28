@@ -166,6 +166,41 @@ details summary::-webkit-details-marker{display:none;}
   .terms details{page-break-inside:avoid;}
   .sec{padding-top:20px;page-break-inside:avoid;}
 }
+
+/* 제출 완료 전체화면 안내 */
+.success-overlay{
+  position:fixed; inset:0; z-index:9999;
+  background:#F7F8F9;
+  display:none;
+  align-items:center; justify-content:center;
+  opacity:0; transition:opacity 260ms ease-out;
+}
+.success-overlay.show{display:flex; opacity:1;}
+.success-card{
+  text-align:center;
+  max-width:420px;
+  padding:0 24px;
+  transform:translateY(10px);
+  opacity:0;
+  transition:transform 380ms cubic-bezier(.2,.8,.2,1), opacity 380ms ease-out;
+}
+.success-overlay.show .success-card{transform:translateY(0); opacity:1;}
+.success-card img{height:36px; margin-bottom:32px;}
+.success-check{
+  width:64px; height:64px; margin:0 auto 24px;
+  border-radius:50%; background:#E9F6E1;
+  display:flex; align-items:center; justify-content:center;
+}
+.success-check svg{width:30px; height:30px;}
+.success-card h2{
+  margin:0 0 14px; font-size:22px; font-weight:800; color:#212121; letter-spacing:-0.02em;
+}
+.success-card p{
+  margin:0; font-size:15px; line-height:1.85; color:#666666;
+}
+@media(max-width:520px){
+  .success-card img{height:30px; margin-bottom:26px;}
+}
 </style>
 </head>
 <body>
@@ -437,13 +472,28 @@ details summary::-webkit-details-marker{display:none;}
     <a href="https://www.matholic.com/" target="_blank" rel="noreferrer">www.matholic.com</a>
   </footer>
 
+  <div style="text-align:center;padding:0 0 24px;font-size:11px;color:#C4C4C4">v3</div>
+
+</div>
+
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <img src="./assets/matholic_logo.png" alt="매쓰홀릭" />
+    <div class="success-check">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#389E0D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2>제출이 완료되었습니다.</h2>
+    <p>담당자가 영업일 기준 1~2일 이내 연락드립니다.<br />감사합니다. :)</p>
+  </div>
 </div>
 
 <script>
 (function () {
+  console.log("[동의서] 버전: v3 (제출완료 전체화면 + 시트연동 적용됨)");
+
   /* 구글 스프레드시트 연동: Apps Script 웹앱 배포 URL을 붙여넣으세요.
      설정 방법은 google-sheets-setup.md 참고. 비워두면 콘솔에만 출력됩니다. */
-  var SHEETS_ENDPOINT = "";
+  var SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbz2Eya3swyIcoTnTTLrfon-vM7A9pNRnLrtw9zkScmOvvNSDhHD5oT2RbF7A_AIFi4K/exec";
 
   var REQUIRED = ["name", "academy", "phone", "bank", "holder", "account", "tax", "sign"];
   var fields = {};
@@ -567,16 +617,21 @@ details summary::-webkit-details-marker{display:none;}
       sending = false;
       submitted = true;
       update();
+      showSuccessOverlay();
     };
 
     if (SHEETS_ENDPOINT) {
+      console.log("[동의서] 전송 시작 →", SHEETS_ENDPOINT);
       fetch(SHEETS_ENDPOINT, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
-      }).then(done).catch(function (err) {
-        console.error("[동의서] 전송 실패", err);
+      }).then(function () {
+        console.log("[동의서] 전송 요청 완료");
+        done();
+      }).catch(function (err) {
+        console.error("[동의서] 전송 실패 — 로컬 file:// 로 열었다면 배포된 https 주소에서 다시 시도하세요.", err);
         done();
       });
     } else {
@@ -584,6 +639,20 @@ details summary::-webkit-details-marker{display:none;}
       done();
     }
   });
+
+  /* 제출 완료 시 전체화면 안내로 전환 */
+  function showSuccessOverlay() {
+    var overlay = document.getElementById("successOverlay");
+    if (!overlay) return;
+    document.body.style.overflow = "hidden";
+    window.scrollTo({ top: 0, behavior: "auto" });
+    overlay.style.display = "flex";
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        overlay.classList.add("show");
+      });
+    });
+  }
 
   /* 인쇄 시 약관 전체 펼치기 */
   var reopened = [];
